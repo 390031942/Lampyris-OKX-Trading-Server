@@ -12,19 +12,19 @@ public class QuoteManager:BehaviourSingleton<QuoteManager>
         // 启动时需要预下载最新的k线
         HistoricalQuoteDownloader.DownloadAllRecentCandle(OkxInstType.SWAP);
 
-        // Tick行情列表-现货
+        // Tick 行情列表-现货
         CallTimer.Instance.SetInterval(() =>
         {
             // m_RealTimeQuoteService.TickQuote(OkxInstType.SPOT);
         }, 5000, -1);
         
-        // Tick行情列表-合约
+        // Tick 行情列表-合约
         CallTimer.Instance.SetInterval(() =>
         {
             RealTimeQuoteService.TickQuote(OkxInstType.SWAP);
         }, 5000, -1);
 
-        // Tick分钟/日k线更新
+        // Tick 分钟/日k线更新
         CallTimer.Instance.SetInterval(() =>
         {
             int minute = -1;
@@ -45,10 +45,5 @@ public class QuoteManager:BehaviourSingleton<QuoteManager>
 
     public override void OnDestroy()
     {
-    }
-
-    public QuoteCandleData Query(string instId)
-    {
-        return                                                                                  
     }
 }

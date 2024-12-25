@@ -163,7 +163,6 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
         }
     }
 
-    public bool 
     public void Foreach(OkxInstType okxInstType, Action<string> foreachFunc)
     {
         if (foreachFunc == null)

@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.16" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SuperWebSocket" Version="0.9.0.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
