@@ -10,14 +10,12 @@ using System;
 [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
 public class IniConfigAttribute : Attribute
 {
-    public string FileName { get; }
     public string Section { get; }
     public string Key { get; }
     public string DefaultValue { get; }
 
-    public IniConfigAttribute(string iniFileName, string section, string key, string defaultValue)
+    public IniConfigAttribute(string section, string key, string defaultValue = "")
     {
-        FileName = iniFileName;
         Section = section;
         Key = key;
         DefaultValue = defaultValue;

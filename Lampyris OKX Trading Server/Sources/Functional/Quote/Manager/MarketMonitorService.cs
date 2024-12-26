@@ -19,6 +19,8 @@ public static class MarketMonitorService
         // 1min 上升/下降通道
         public long   FiveMinRiseTimestamp;
         public long   FiveMinDownTimestamp;
+
+        // 1min 连红连绿
     }
 
     private static List<QuoteCandleData>      ms_QuoteCandleDatas = new List<QuoteCandleData>();
@@ -55,14 +57,14 @@ public static class MarketMonitorService
             QuoteCacheService.Instance.QueryLastestNoAlloc(instId, OkxBarSize._1m, ms_QuoteCandleDatas, 30);
             MACalculator.Calculate(ms_QuoteCandleDatas);
 
-            // 采样最近10根 1min k线, 判断上升通道
+            // 采样最近 1min k线, 判断上升通道
             if(ms_QuoteCandleDatas.Count >= 10)
             {
                 bool FiveMinRiseUp   = true;
                 bool FiveMinRiseDown = true;
 
                 // 1min 均线上升通道判定
-                for (int i = ms_QuoteCandleDatas.Count - 10; i < ms_QuoteCandleDatas.Count - 2; i++)
+                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinMA5Threshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                 {
                     if (CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Lesser))
                     {
@@ -72,7 +74,7 @@ public static class MarketMonitorService
                 }
 
                 // 1min 均线下降通道判定
-                for (int i = ms_QuoteCandleDatas.Count - 10; i < ms_QuoteCandleDatas.Count - 2; i++)
+                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinMA5Threshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                 {
                     if (CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Greater))
                     {
@@ -82,13 +84,13 @@ public static class MarketMonitorService
                 }
             }
 
-            // 采样最近5根 1min k线, 判断连红,连绿
-            if (ms_QuoteCandleDatas.Count >= 5)
+            // 采样最近 1min k线, 判断连红,连绿
+            if (ms_QuoteCandleDatas.Count >= MarketMonitorSetting.OneMinSameColorCandleThreshold)
             {
                 bool MA5candleContinuousRiseUp = true;
                 bool MA5candleContinuousRiseDown = true;
 
-                for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
+                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                 {
                     if (ms_QuoteCandleDatas[i - 1].Close <  ms_QuoteCandleDatas[i].Close)
                     {
@@ -97,7 +99,7 @@ public static class MarketMonitorService
                     }
                 }
 
-                for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
+                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold i < ms_QuoteCandleDatas.Count - 2; i++)
                 {
                     if (ms_QuoteCandleDatas[i - 1].Close > ms_QuoteCandleDatas[i].Close)
                     {
@@ -159,7 +161,21 @@ public static class MarketMonitorService
             // 分钟级涨速/跌速>1.5%
 
             // 区间放量
-
+            if (ms_QuoteCandleDatas.Count >= 15)
+            {
+                double moneyAvg3 = 0.0;
+                double moneyAvg15 = 0.0;
+                for (int i = 0; i < 15; i++)
+                {
+                    if(i >= 12) 
+                    {
+                        moneyAvg3 = moneyAvg3 + ms_QuoteCandleDatas[i - 1].VolCcy;
+                    }
+                    moneyAvg15 = moneyAvg15 + ms_QuoteCandleDatas[i - 1].VolCcy;
+                }
+                moneyAvg3 /= 3;
+                moneyAvg15 /= 15;
+            }
             // 脉冲放量
         });
     }
