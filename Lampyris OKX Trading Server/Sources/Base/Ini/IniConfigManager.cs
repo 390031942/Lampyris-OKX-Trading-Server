@@ -14,47 +14,41 @@ public class IniConfigManager:BehaviourSingleton<IniConfigManager>
 {
     private readonly Dictionary<string, IniFile> m_IniFiles = new Dictionary<string, IniFile>(StringComparer.OrdinalIgnoreCase);
 
-    private void LoadConfig(Type configType)
+    private void LoadConfig(string fileName, FieldInfo[] fields)
     {
-        var fields = configType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(field => Attribute.IsDefined(field, typeof(IniConfigAttribute)));
-
         foreach (var field in fields)
         {
             var attribute = field.GetCustomAttribute<IniConfigAttribute>();
             if (attribute != null)
             {
-                if (!m_IniFiles.ContainsKey(attribute.FileName))
+                if (!m_IniFiles.ContainsKey(fileName))
                 {
-                    m_IniFiles[attribute.FileName] = new IniFile(attribute.FileName);
+                    m_IniFiles[fileName] = new IniFile(fileName);
                 }
 
-                string value = m_IniFiles[attribute.FileName].ReadValue(attribute.Section, attribute.Key, attribute.DefaultValue);
+                string value = m_IniFiles[fileName].ReadValue(attribute.Section, attribute.Key, attribute.DefaultValue);
                 var convertedValue = Convert.ChangeType(value, field.FieldType);
                 field.SetValue(null, convertedValue);
             }
         }
     }
 
-    private void SaveConfig(Type configType)
+    private void SaveConfig(string fileName, FieldInfo[] fields)
     {
-        var fields = configType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(field => Attribute.IsDefined(field, typeof(IniConfigAttribute)));
-
         foreach (var field in fields)
         {
             var attribute = field.GetCustomAttribute<IniConfigAttribute>();
             if(attribute != null)
             {
-                if (!m_IniFiles.ContainsKey(attribute.FileName))
+                if (!m_IniFiles.ContainsKey(fileName))
                 {
-                    m_IniFiles[attribute.FileName] = new IniFile(attribute.FileName);
+                    m_IniFiles[fileName] = new IniFile(fileName);
                 }
 
                 string? value = field.GetValue(null)?.ToString();
                 if(value != null)
                 {
-                    m_IniFiles[attribute.FileName].WriteValue(attribute.Section, attribute.Key, value);
+                    m_IniFiles[fileName].WriteValue(attribute.Section, attribute.Key, value);
                 }
             }
         }
@@ -78,13 +72,16 @@ public class IniConfigManager:BehaviourSingleton<IniConfigManager>
                 IniFileAttribute? attribute = type.GetCustomAttribute<IniFileAttribute>();
                 if (attribute != null)
                 {
-                    if(isSave)
+                    FieldInfo[] fields = type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                        .Where(field => Attribute.IsDefined(field, typeof(IniConfigAttribute))).ToArray();
+
+                    if (isSave)
                     {
-                        SaveConfig(type);
+                        SaveConfig(attribute.FileName,fields);
                     }
                     else
                     {
-                        LoadConfig(type);
+                        LoadConfig(attribute.FileName,fields);
                     }
                 }
             }

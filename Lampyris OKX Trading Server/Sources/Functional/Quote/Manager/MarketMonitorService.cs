@@ -99,7 +99,7 @@ public static class MarketMonitorService
                     }
                 }
 
-                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold i < ms_QuoteCandleDatas.Count - 2; i++)
+                for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold;  i < ms_QuoteCandleDatas.Count - 2; i++)
                 {
                     if (ms_QuoteCandleDatas[i - 1].Close > ms_QuoteCandleDatas[i].Close)
                     {
@@ -141,7 +141,7 @@ public static class MarketMonitorService
                 if (realTimeData != null)
                 {
                     PerInstActiveInfo newPercentangeInfo = ms_PerInstActiveInfoMap.ContainsKey(instId) ? 
-                                                            ms_PerInstActiveInfoMap[instId] : new PerInstActiveInfo();
+                                                           ms_PerInstActiveInfoMap[instId] : new PerInstActiveInfo();
                     if (realTimeData.Percentage >= 1)
                     {
                         if(realTimeData.Percentage > newPercentangeInfo.HighPerc)
@@ -161,6 +161,7 @@ public static class MarketMonitorService
             // 分钟级涨速/跌速>1.5%
 
             // 区间放量
+            bool rangeVolActive = false;
             if (ms_QuoteCandleDatas.Count >= 15)
             {
                 double moneyAvg3 = 0.0;
@@ -169,14 +170,39 @@ public static class MarketMonitorService
                 {
                     if(i >= 12) 
                     {
-                        moneyAvg3 = moneyAvg3 + ms_QuoteCandleDatas[i - 1].VolCcy;
+                        moneyAvg3 = moneyAvg3 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
                     }
-                    moneyAvg15 = moneyAvg15 + ms_QuoteCandleDatas[i - 1].VolCcy;
+                    moneyAvg15 = moneyAvg15 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
                 }
                 moneyAvg3 /= 3;
                 moneyAvg15 /= 15;
+
+                if(moneyAvg3 > 5 * moneyAvg15)
+                {
+                    rangeVolActive = true;
+                }
             }
+
             // 脉冲放量
+            bool suddenlyBigVolActive = false;
+            if (ms_QuoteCandleDatas.Count >= 6)
+            {
+                double moneySum = 0.0;
+                double maxMoney = 0.0;
+                double curMinMoney = ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - 1].VolCcy;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    moneySum = moneySum + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 2].VolCcy;
+                    maxMoney = Math.Max(maxMoney, moneySum);
+                }
+
+                moneySum /= 5;
+                if(curMinMoney > 3 * maxMoney & curMinMoney > 3 * moneySum)
+                {
+                    suddenlyBigVolActive = true;
+                }
+            }
         });
     }
 }
