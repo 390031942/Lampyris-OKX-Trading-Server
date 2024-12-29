@@ -56,4 +56,13 @@ public class QuoteCandleData:IComparable<QuoteCandleData>
         }
         return other.DateTime.CompareTo(this.DateTime);
     }
+
+    public double ChangePercentage(QuoteCandleData? other)
+    {
+        if (other == null)
+        {
+            return 0;
+        }
+        return Math.Round((other.Close - Close) / Close * 100,2);
+    }
 }
