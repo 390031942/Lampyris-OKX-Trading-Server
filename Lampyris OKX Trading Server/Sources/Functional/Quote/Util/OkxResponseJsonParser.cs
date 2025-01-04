@@ -140,8 +140,11 @@ public static class OkxResponseJsonParser
                 quoteCandleData.VolCcy      = jArray[6].ToObject<double>();
                 quoteCandleData.VolCcyQuote = jArray[7].ToObject<double>();
 
+                quoteCandleData.DateTime    = quoteCandleData.DateTime.AddHours(8);
                 result.Add(quoteCandleData);
             }
         }
+
+        result.Reverse();
     }
 }

@@ -56,14 +56,13 @@ public static class MarketMonitorService
         {
             QuoteTickerData tickerData = RealTimeQuoteService.Query(instId);
             if(tickerData == null)
-            {
                 return;
-            }
+
+            if (!ms_PerInstActiveInfoMap.ContainsKey(instId))
+                ms_PerInstActiveInfoMap[instId] = new PerInstActiveInfo();
+
             PerInstActiveInfo perInstActiveInfo = ms_PerInstActiveInfoMap[instId];
-            if (perInstActiveInfo == null) 
-            {
-                return;
-            }
+            
             QuoteCacheService.Instance.QueryLastestNoAlloc(instId, OkxBarSize._1m, ms_QuoteCandleDatas, 30);    
             MACalculator.Calculate(ms_QuoteCandleDatas);
             DateTime now = DateTime.Now;
@@ -79,7 +78,7 @@ public static class MarketMonitorService
                 {
                     for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinMA5Threshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                     {
-                        if (CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Lesser))
+                        if (!CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Lesser))
                         {
                             isRise = false;
                             break;
@@ -90,7 +89,7 @@ public static class MarketMonitorService
                         // 1min 均线下降通道判定
                         for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinMA5Threshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                         {
-                            if (CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Greater))
+                            if (!CompareMovingAverage(ms_QuoteCandleDatas[i - 1], ms_QuoteCandleDatas[i], ms_Greater))
                             {
                                 isFall = false;
                                 break;
@@ -121,7 +120,7 @@ public static class MarketMonitorService
 
                     for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                     {
-                        if (ms_QuoteCandleDatas[i - 1].Close < ms_QuoteCandleDatas[i].Close)
+                        if (ms_QuoteCandleDatas[i - 1].Close >= ms_QuoteCandleDatas[i].Close)
                         {
                             MA5candleContinuousRiseUp = false;
                             break;
@@ -130,7 +129,7 @@ public static class MarketMonitorService
 
                     for (int i = ms_QuoteCandleDatas.Count - MarketMonitorSetting.OneMinSameColorCandleThreshold; i < ms_QuoteCandleDatas.Count - 2; i++)
                     {
-                        if (ms_QuoteCandleDatas[i - 1].Close > ms_QuoteCandleDatas[i].Close)
+                        if (ms_QuoteCandleDatas[i - 1].Close <= ms_QuoteCandleDatas[i].Close)
                         {
                             MA5candleContinuousRiseDown = false;
                             break;

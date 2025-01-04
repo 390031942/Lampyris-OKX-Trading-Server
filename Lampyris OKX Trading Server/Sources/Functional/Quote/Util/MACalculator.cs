@@ -9,7 +9,7 @@ public class MACalculator
 {
     public static void Calculate(List<QuoteCandleData> quoteCandleDatas)
     {
-        if (quoteCandleDatas == null || quoteCandleDatas.Count >= 5)
+        if (quoteCandleDatas == null || quoteCandleDatas.Count < 5)
             return;
 
         for (int i = 0; i < quoteCandleDatas.Count; i++)

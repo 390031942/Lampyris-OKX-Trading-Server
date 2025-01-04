@@ -10,6 +10,8 @@ public static class RealTimeQuoteService
 {
     private static Dictionary<string, QuoteTickerData> ms_RealTimeQuoteDataMap = new ();
 
+    private static long ms_LastestTimestamp = DateTimeUtil.GetCurrentTimestamp();
+
     private static List<QuoteTickerData> ms_RealTimeQuoteDataList = new ();
     public static IReadOnlyCollection<QuoteTickerData> TickQuote(OkxInstType instType)
     {
@@ -18,7 +20,12 @@ public static class RealTimeQuoteService
         {
             try
             {
-                 OkxResponseJsonParser.ParseTickerListNoAlloc(json,ms_RealTimeQuoteDataList);
+                OkxResponseJsonParser.ParseTickerListNoAlloc(json,ms_RealTimeQuoteDataList);
+                foreach (QuoteTickerData quoteTickerData in ms_RealTimeQuoteDataList)
+                {
+                    QuoteCacheService.Instance.StorageInstId(instType, quoteTickerData.InstId);
+                    ms_LastestTimestamp = quoteTickerData.Ts;
+                }
             }
             catch (Exception ex)
             {
@@ -41,6 +48,14 @@ public static class RealTimeQuoteService
 
     public static QuoteTickerData Query(string instId)
     {
+        if (!ms_RealTimeQuoteDataMap.ContainsKey(instId))
+            return null;
+
         return ms_RealTimeQuoteDataMap[instId];
+    }
+
+    public static DateTime QueryLatestDateTime()
+    {
+        return DateTimeUtil.FromUnixTimestamp(ms_LastestTimestamp);
     }
 }

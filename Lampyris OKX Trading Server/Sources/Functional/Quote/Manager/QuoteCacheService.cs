@@ -13,7 +13,7 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
      */
     private Dictionary<string, Dictionary<OkxBarSize, List<QuoteCandleData>>> m_CandleDataMap = new ();
 
-    private Dictionary<OkxInstType, List<string>> m_Inst2InstIdListMap = new ();
+    private Dictionary<OkxInstType, HashSet<string>> m_Inst2InstIdListMap = new ();
 
 
     public override void OnStart()
@@ -37,22 +37,6 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
                         m_CandleDataMap[instId][barSize] = quoteCacheData;
                     }
                 }
-            }
-        }
-    }
-
-    public override void OnDestroy()
-    {
-        foreach (var pair in m_CandleDataMap)
-        {
-            string instId = pair.Key;
-            foreach(var pair2 in pair.Value)
-            {
-                var barSize     = pair2.Key;
-                var candleDatas = pair2.Value;
-
-                var barSizeName = EnumNameManager.GetName(barSize);
-                SerializationManager.Instance.Register(pair.Value, $"quote-cache/{instId}_{barSize}.bin");
             }
         }
     }
@@ -121,12 +105,13 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
 
     public QuoteCandleData QueryLastest(string instId, OkxBarSize okxBarSize)
     {
+        if(!m_CandleDataMap.ContainsKey(instId))
+            return null;
 
         var barSizeDataMap = m_CandleDataMap[instId];
+
         if (!barSizeDataMap.ContainsKey(okxBarSize))
-        {
-            barSizeDataMap[okxBarSize] = new List<QuoteCandleData>();
-        }
+            return null;
 
         var storageList = barSizeDataMap[okxBarSize];
         if (storageList != null)
@@ -147,16 +132,17 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
     public void QueryLastestNoAlloc(string instId, OkxBarSize okxBarSize, List<QuoteCandleData> result, int n)
     {
         result.Clear();
+        if (!m_CandleDataMap.ContainsKey(instId))
+            return;
+
         var barSizeDataMap = m_CandleDataMap[instId];
         if (!barSizeDataMap.ContainsKey(okxBarSize))
-        {
-            barSizeDataMap[okxBarSize] = new List<QuoteCandleData>();
-        }
+            return;
 
         var storageList = barSizeDataMap[okxBarSize];
         if (storageList != null)
         {
-            for (int i = storageList.Count - 1; i >= Math.Max(0, storageList.Count - 1 - n); i--)
+            for (int i = Math.Max(0, storageList.Count - n); i < storageList.Count; i++)
             {
                 result.Add(storageList[i]);
             }
@@ -168,6 +154,9 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
         if (foreachFunc == null)
             return;
 
+        if (!m_Inst2InstIdListMap.ContainsKey(okxInstType))
+            return;
+
         var instIdList = m_Inst2InstIdListMap[okxInstType];
         foreach(var instId in instIdList)
         {
@@ -175,6 +164,32 @@ public class QuoteCacheService:BehaviourSingleton<QuoteCacheService>
             {
                 foreachFunc(instId);
             }    
+        }
+    }
+
+    public void StorageInstId(OkxInstType okxInstType, string instId)
+    {
+        if(!m_Inst2InstIdListMap.ContainsKey(okxInstType))
+        {
+            m_Inst2InstIdListMap[okxInstType] = new HashSet<string>();
+        }
+        var instIdList = m_Inst2InstIdListMap[okxInstType];
+        instIdList.Add(instId);
+    }
+
+    public override void OnDestroy()
+    {
+        foreach (var pair in m_CandleDataMap)
+        {
+            string instId = pair.Key;
+            foreach (var pair2 in pair.Value)
+            {
+                var barSize = pair2.Key;
+                var candleDatas = pair2.Value;
+
+                var barSizeName = EnumNameManager.GetName(barSize);
+                SerializationManager.Instance.Register(pair.Value, $"quote-cache/{instId}_{barSize}.bin");
+            }
         }
     }
 }

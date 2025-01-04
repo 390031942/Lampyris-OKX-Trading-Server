@@ -15,6 +15,10 @@ public class FileLogger : ILogger
     public FileLogger(string filePath)
     {
         this.filePath = filePath;
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
     }
 
     public void Log(string message)

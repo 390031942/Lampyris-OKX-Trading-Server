@@ -8,7 +8,7 @@
  * 延时/延帧管理器
  */
 
-using HongJinInvestment.OKX.Server;
+namespace HongJinInvestment.OKX.Server;
 
 public class CallTimer:BehaviourSingleton<CallTimer>
 {
