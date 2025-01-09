@@ -13,14 +13,19 @@ public static class MarketMonitorService
         // 新高新低 部分
         public double   HighPerc;
         public double   LowPerc;
-        public DateTime HighTimeDateTime;
-        public DateTime LowTimestamp;
+        public DateTime HighLowTimestamp;
 
         // 1min 上升/下降通道
         public DateTime OneMinKTrendTimestamp;
 
         // 1min 连红连绿
         public DateTime OneMinContinuousColorTimestamp;
+
+        // 15min 连红连绿
+        public DateTime FifteenMinContinuousColorTimestamp;
+
+        // 涨速
+        public DateTime ChangeSpeedTimestmap;
     }
 
     private static List<QuoteCandleData>      ms_QuoteCandleDatas = new List<QuoteCandleData>();
@@ -111,7 +116,7 @@ public static class MarketMonitorService
             }
 
             // 采样最近 1min k线, 判断连红,连绿
-            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.OneMinKTrendTimestamp, now, OkxBarSize._1m) > 0)
+            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.OneMinContinuousColorTimestamp, now, OkxBarSize._1m) > 0)
             {
                 if (ms_QuoteCandleDatas.Count >= MarketMonitorSetting.OneMinSameColorCandleThreshold)
                 {
@@ -135,66 +140,112 @@ public static class MarketMonitorService
                             break;
                         }
                     }
+
+                    if (MA5candleContinuousRiseUp)
+                    {
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 1分k线连阳");
+                        perInstActiveInfo.OneMinContinuousColorTimestamp = now;
+                    }
+                    else if (MA5candleContinuousRiseDown)
+                    {
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 1分k线连阴");
+                        perInstActiveInfo.OneMinContinuousColorTimestamp = now;
+                    }
                 }
             }
 
-
             // 采样最近5根 15min k线, 判断连红连绿+上升通道
-            if (ms_QuoteCandleDatas.Count >= 5)
+            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.FifteenMinContinuousColorTimestamp, now, OkxBarSize._15m) > 0)
             {
-                bool candleContinuousRiseUp = true;
-                bool candleContinuousRiseDown = true;
-
-                for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
+                if (ms_QuoteCandleDatas.Count >= 5)
                 {
-                    if (ms_QuoteCandleDatas[i - 1].Close < ms_QuoteCandleDatas[i].Close)
+                    bool candleContinuousRiseUp = true;
+                    bool candleContinuousRiseDown = true;
+
+                    for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
                     {
-                        candleContinuousRiseUp = false;
-                        break;
+                        if (ms_QuoteCandleDatas[i - 1].Close < ms_QuoteCandleDatas[i].Close)
+                        {
+                            candleContinuousRiseUp = false;
+                            break;
+                        }
                     }
-                }
-
-                for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
-                {
-                    if (ms_QuoteCandleDatas[i - 1].Close > ms_QuoteCandleDatas[i].Close)
+                    for (int i = ms_QuoteCandleDatas.Count - 5; i < ms_QuoteCandleDatas.Count - 2; i++)
                     {
-                        candleContinuousRiseDown = false;
-                        break;
+                        if (ms_QuoteCandleDatas[i - 1].Close > ms_QuoteCandleDatas[i].Close)
+                        {
+                            candleContinuousRiseDown = false;
+                            break;
+                        }
+                    }
+
+                    if (candleContinuousRiseUp)
+                    {
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 15分k线连阳");
+                        perInstActiveInfo.FifteenMinContinuousColorTimestamp = now;
+                    }
+                    else if (candleContinuousRiseDown)
+                    {
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 15分k线连阴");
+                        perInstActiveInfo.FifteenMinContinuousColorTimestamp = now;
                     }
                 }
             }
 
             // 24小时新高/新低且大于1%
-            if (ms_QuoteCandleDatas.Count >= 10)
+            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.HighLowTimestamp, now, OkxBarSize._1m) > 0)
             {
-                QuoteTickerData realTimeData = RealTimeQuoteService.Query(instId);
-                if (realTimeData != null)
+                if (ms_QuoteCandleDatas.Count >= 10)
                 {
-                    PerInstActiveInfo newPercentangeInfo = ms_PerInstActiveInfoMap.ContainsKey(instId) ? 
-                                                           ms_PerInstActiveInfoMap[instId] : new PerInstActiveInfo();
-                    if (realTimeData.Percentage >= 1)
+                    QuoteTickerData realTimeData = RealTimeQuoteService.Query(instId);
+                    if (realTimeData != null)
                     {
-                        if(realTimeData.Percentage > newPercentangeInfo.HighPerc)
+                        PerInstActiveInfo newPercentangeInfo = ms_PerInstActiveInfoMap.ContainsKey(instId) ?
+                                                               ms_PerInstActiveInfoMap[instId] : new PerInstActiveInfo();
+                        if (realTimeData.Percentage >= 1)
                         {
-                            
+                            if (realTimeData.Percentage > newPercentangeInfo.HighPerc)
+                            {
+                                perInstActiveInfo.HighLowTimestamp = now;
+                                LogManager.Instance.LogInfo($"[异动提示]:{instId} 24小时内新高，达到{realTimeData.Percentage}%");
+                            }
                         }
-                    }
-                    else if(realTimeData.Percentage <= -1)
-                    {
-                        if (realTimeData.Percentage < newPercentangeInfo.LowPerc)
+                        else if (realTimeData.Percentage <= -1)
                         {
-
+                            if (realTimeData.Percentage < newPercentangeInfo.LowPerc)
+                            {
+                                perInstActiveInfo.HighLowTimestamp = now;
+                                LogManager.Instance.LogInfo($"[异动提示]:{instId} 24小时内新低，达到{realTimeData.Percentage}%");
+                            }
                         }
                     }
                 }
             }
-            // 分钟级涨速/跌速>1.5%
-            if (ms_QuoteCandleDatas.Count >= 3)
-            {
-                var data1 = ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - 1];
-                var data2 = ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - 3];
 
-                double perc = data1.ChangePercentage(data2);
+            // 分钟级涨速/跌速>1.5%
+            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.ChangeSpeedTimestmap, now, OkxBarSize._1m) > 1)
+            {
+                if (ms_QuoteCandleDatas.Count >= 3)
+                {
+                    QuoteTickerData realTimeData = RealTimeQuoteService.Query(instId);
+
+                    var data1 = ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - 1];
+                    var data2 = ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - 3];
+
+                    double perc = data1.ChangePercentage(data2);
+                    double percThreshold = 1.5;
+
+                    if (perc > percThreshold)
+                    {
+                        perInstActiveInfo.HighLowTimestamp = now;
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 涨速达到{percThreshold}%，{realTimeData.Percentage}%");
+                    }
+                    else if(perc < -percThreshold)
+                    {
+                        perInstActiveInfo.HighLowTimestamp = now;
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 跌速达到{percThreshold}%，{realTimeData.Percentage}%");
+                    }
+                }
             }
 
             // 区间放量

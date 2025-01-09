@@ -32,6 +32,7 @@ public static class HistoricalQuoteDownloader
             CoroutineManager.Instance.StartCoroutine(DownloadRecentCandleProcess(instIdList, barSize, callback, 0.05 * barSizes.Count));
         }
     }
+
     public static void DownloadAllHistoryCandle(OkxInstType okxInstType, List<OkxBarSize> barSizes, int n, Action<OkxBarSize>? callback = null)
     {
         IReadOnlyCollection<QuoteTickerData> dataList = RealTimeQuoteService.TickQuote(okxInstType);
