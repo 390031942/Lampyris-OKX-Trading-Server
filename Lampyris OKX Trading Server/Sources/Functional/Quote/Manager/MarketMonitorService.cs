@@ -26,6 +26,9 @@ public static class MarketMonitorService
 
         // 涨速
         public DateTime ChangeSpeedTimestmap;
+
+        // 区间放量
+        public DateTime VolumeIncreaseTimestmap;
     }
 
     private static List<QuoteCandleData>      ms_QuoteCandleDatas = new List<QuoteCandleData>();
@@ -249,27 +252,31 @@ public static class MarketMonitorService
             }
 
             // 区间放量
-            bool rangeVolActive = false;
-            if (ms_QuoteCandleDatas.Count >= 15)
+            if (DateTimeUtil.GetOkxBarTimeSpanDiff(perInstActiveInfo.VolumeIncreaseTimestmap, now, OkxBarSize._1m) > 5)
             {
-                double moneyAvg3 = 0.0;
-                double moneyAvg15 = 0.0;
-                for (int i = 0; i < 15; i++)
+                if (ms_QuoteCandleDatas.Count >= 15)
                 {
-                    if(i >= 12) 
+                    double moneyAvg3 = 0.0;
+                    double moneyAvg15 = 0.0;
+                    for (int i = 0; i < 15; i++)
                     {
-                        moneyAvg3 = moneyAvg3 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
+                        if (i >= 12)
+                        {
+                            moneyAvg3 = moneyAvg3 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
+                        }
+                        moneyAvg15 = moneyAvg15 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
                     }
-                    moneyAvg15 = moneyAvg15 + ms_QuoteCandleDatas[ms_QuoteCandleDatas.Count - i - 1].VolCcy;
-                }
-                moneyAvg3 /= 3;
-                moneyAvg15 /= 15;
+                    moneyAvg3 /= 3;
+                    moneyAvg15 /= 15;
 
-                if(moneyAvg3 > 5 * moneyAvg15)
-                {
-                    rangeVolActive = true;
+                    if (moneyAvg3 > 5 * moneyAvg15)
+                    {
+                        LogManager.Instance.LogInfo($"[异动提示]:{instId} 区间放量{Math.Round(moneyAvg3 / moneyAvg15, 2)}倍");
+                        perInstActiveInfo.VolumeIncreaseTimestmap = now;
+                    }
                 }
             }
+           
 
             // 脉冲放量
             bool suddenlyBigVolActive = false;
